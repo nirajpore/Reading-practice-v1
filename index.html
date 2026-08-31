@@ -46,11 +46,35 @@
       text-align: left;
       font-size: 20px;
       line-height: 1.7;
+      white-space: pre-wrap;
     }
 
     #status {
       margin-top: 15px;
       color: #666;
+    }
+
+    .inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 20px 0;
+      align-items: stretch;
+    }
+
+    input[type="text"], input[type="password"] {
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 16px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    label {
+      text-align: left;
+      font-weight: 600;
+      font-size: 14px;
     }
   </style>
 </head>
@@ -61,7 +85,19 @@
 
     <h1>📚 Reading Practice</h1>
 
-    <p>Press the button to get a new story.</p>
+    <p>Generate short children's stories. Paste your OpenAI API key below (this is stored only in the browser session).</p>
+
+    <div class="inputs">
+      <div>
+        <label for="apiKey">OpenAI API Key</label>
+        <input id="apiKey" type="password" placeholder="sk-..." />
+      </div>
+
+      <div>
+        <label for="theme">Story theme (e.g., "forest", "space adventure")</label>
+        <input id="theme" type="text" placeholder="Enter a theme for the story" />
+      </div>
+    </div>
 
     <button id="generateButton" onclick="generateStory()">
       Generate a Story
@@ -80,32 +116,61 @@ async function generateStory() {
   const button = document.getElementById("generateButton");
   const status = document.getElementById("status");
   const story = document.getElementById("story");
+  const apiKeyInput = document.getElementById("apiKey");
+  const themeInput = document.getElementById("theme");
+
+  const apiKey = apiKeyInput.value.trim();
+  const theme = themeInput.value.trim() || "a friendly animal";
+
+  if (!apiKey) {
+    alert('Please paste your OpenAI API key into the "OpenAI API Key" field.');
+    return;
+  }
 
   button.disabled = true;
   status.innerText = "Creating your story...";
   story.innerText = "";
 
-  /*
-    For now this is a test story.
-    We'll connect ChatGPT in the next step.
-  */
+  try {
+    const prompt = `Write a short, friendly children's story (3-6 short paragraphs) about the theme: "${theme}". Keep language simple and positive.`;
 
-  setTimeout(() => {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 500,
+        temperature: 0.8
+      })
+    });
 
-    story.innerText =
-      "Tom found a tiny bird sitting beside the garden gate. " +
-      "The bird looked tired and could not fly. Tom gently picked it up " +
-      "and placed it in a warm box. He gave it some water and waited. " +
-      "The next morning, the bird opened its wings. Tom carried the box " +
-      "outside and placed it under a tree. The bird hopped onto a branch " +
-      "and sang a happy song. Then it flew into the bright blue sky. " +
-      "Tom smiled because he knew his new little friend was safe.";
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errText}`);
+    }
 
+    const data = await response.json();
+
+    // The assistant reply is usually in data.choices[0].message.content
+    const generated = data?.choices?.[0]?.message?.content;
+
+    if (!generated) {
+      throw new Error('No story returned from the API.');
+    }
+
+    story.innerText = generated.trim();
     status.innerText = "Ready to read!";
 
+  } catch (err) {
+    console.error(err);
+    status.innerText = "Error: " + (err.message || err);
+  } finally {
     button.disabled = false;
-
-  }, 1000);
+  }
 
 }
 

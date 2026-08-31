@@ -85,12 +85,12 @@
 
     <h1>📚 Reading Practice</h1>
 
-    <p>Generate short children's stories. Paste your OpenAI API key below (this is stored only in the browser session).</p>
+    <p>Generate short children's stories. Paste your Hugging Face API token below (this is stored only in the browser session). Using model: google/flan-t5-small.</p>
 
     <div class="inputs">
       <div>
-        <label for="apiKey">OpenAI API Key</label>
-        <input id="apiKey" type="password" placeholder="sk-..." />
+        <label for="apiKey">Hugging Face API Token</label>
+        <input id="apiKey" type="password" placeholder="hf_..." />
       </div>
 
       <div>
@@ -123,7 +123,7 @@ async function generateStory() {
   const theme = themeInput.value.trim() || "a friendly animal";
 
   if (!apiKey) {
-    alert('Please paste your OpenAI API key into the "OpenAI API Key" field.');
+    alert('Please paste your Hugging Face API token into the "Hugging Face API Token" field.');
     return;
   }
 
@@ -134,32 +134,42 @@ async function generateStory() {
   try {
     const prompt = `Write a short, friendly children's story (3-6 short paragraphs) about the theme: "${theme}". Keep language simple and positive.`;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    // Using Hugging Face Inference API with model google/flan-t5-small
+    const model = "google/flan-t5-small";
+    const url = `https://api-inference.huggingface.co/models/${model}`;
+
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 500,
-        temperature: 0.8
+        inputs: prompt,
+        parameters: { max_new_tokens: 250, temperature: 0.8 }
       })
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`OpenAI API error: ${response.status} ${response.statusText} - ${errText}`);
+      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${errText}`);
     }
 
     const data = await response.json();
 
-    // The assistant reply is usually in data.choices[0].message.content
-    const generated = data?.choices?.[0]?.message?.content;
+    // The inference API may return an array with {generated_text} or an object with generated_text
+    let generated = null;
+    if (Array.isArray(data) && data.length > 0) {
+      generated = data[0].generated_text || data[0].text || data[0].generated_text;
+    } else if (data && (data.generated_text || data.text)) {
+      generated = data.generated_text || data.text;
+    } else if (typeof data === 'string') {
+      generated = data;
+    }
 
     if (!generated) {
-      throw new Error('No story returned from the API.');
+      // Some models return a nested completion; fallback to JSON string
+      generated = JSON.stringify(data);
     }
 
     story.innerText = generated.trim();

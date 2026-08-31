@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reading Practice</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 40px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      font-size: 30px;
+    }
+
+    button {
+      background: #3478f6;
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      border-radius: 12px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background: #aaa;
+    }
+
+    #story {
+      margin-top: 30px;
+      text-align: left;
+      font-size: 20px;
+      line-height: 1.7;
+    }
+
+    #status {
+      margin-top: 15px;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <h1>📚 Reading Practice</h1>
+
+    <p>Press the button to get a new story.</p>
+
+    <button id="generateButton" onclick="generateStory()">
+      Generate a Story
+    </button>
+
+    <div id="status"></div>
+
+    <div id="story"></div>
+
+  </div>
+
+<script>
+
+async function generateStory() {
+
+  const button = document.getElementById("generateButton");
+  const status = document.getElementById("status");
+  const story = document.getElementById("story");
+
+  button.disabled = true;
+  status.innerText = "Creating your story...";
+  story.innerText = "";
+
+  /*
+    For now this is a test story.
+    We'll connect ChatGPT in the next step.
+  */
+
+  setTimeout(() => {
+
+    story.innerText =
+      "Tom found a tiny bird sitting beside the garden gate. " +
+      "The bird looked tired and could not fly. Tom gently picked it up " +
+      "and placed it in a warm box. He gave it some water and waited. " +
+      "The next morning, the bird opened its wings. Tom carried the box " +
+      "outside and placed it under a tree. The bird hopped onto a branch " +
+      "and sang a happy song. Then it flew into the bright blue sky. " +
+      "Tom smiled because he knew his new little friend was safe.";
+
+    status.innerText = "Ready to read!";
+
+    button.disabled = false;
+
+  }, 1000);
+
+}
+
+</script>
+
+</body>
+</html>

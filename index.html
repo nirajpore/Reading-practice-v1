@@ -62,7 +62,7 @@
       align-items: stretch;
     }
 
-    input[type="text"], input[type="password"] {
+    input[type="text"] {
       padding: 10px 12px;
       border-radius: 8px;
       border: 1px solid #ddd;
@@ -85,14 +85,9 @@
 
     <h1>📚 Reading Practice</h1>
 
-    <p>Generate short children's stories. Paste your Hugging Face API token below (this is stored only in the browser session). Using model: google/flan-t5-small.</p>
+    <p>Generate short children's stories. The site uses a server-side proxy (Vercel) to call Hugging Face — no token is required in the browser.</p>
 
     <div class="inputs">
-      <div>
-        <label for="apiKey">Hugging Face API Token</label>
-        <input id="apiKey" type="password" placeholder="hf_..." />
-      </div>
-
       <div>
         <label for="theme">Story theme (e.g., "forest", "space adventure")</label>
         <input id="theme" type="text" placeholder="Enter a theme for the story" />
@@ -112,76 +107,40 @@
 <script>
 
 async function generateStory() {
-
   const button = document.getElementById("generateButton");
   const status = document.getElementById("status");
   const story = document.getElementById("story");
-  const apiKeyInput = document.getElementById("apiKey");
   const themeInput = document.getElementById("theme");
 
-  const apiKey = apiKeyInput.value.trim();
   const theme = themeInput.value.trim() || "a friendly animal";
-
-  if (!apiKey) {
-    alert('Please paste your Hugging Face API token into the "Hugging Face API Token" field.');
-    return;
-  }
 
   button.disabled = true;
   status.innerText = "Creating your story...";
   story.innerText = "";
 
   try {
-    const prompt = `Write a short, friendly children's story (3-6 short paragraphs) about the theme: "${theme}". Keep language simple and positive.`;
-
-    // Using Hugging Face Inference API with model google/flan-t5-small
-    const model = "google/flan-t5-small";
-    const url = `https://api-inference.huggingface.co/models/${model}`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: { max_new_tokens: 250, temperature: 0.8 }
-      })
+    const resp = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme })
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`Hugging Face API error: ${response.status} ${response.statusText} - ${errText}`);
+    if (!resp.ok) {
+      const bodyText = await resp.text();
+      throw new Error(`Proxy error: ${resp.status} ${bodyText}`);
     }
 
-    const data = await response.json();
+    const data = await resp.json();
+    if (!data || !data.story) throw new Error('No story returned from proxy');
 
-    // The inference API may return an array with {generated_text} or an object with generated_text
-    let generated = null;
-    if (Array.isArray(data) && data.length > 0) {
-      generated = data[0].generated_text || data[0].text || data[0].generated_text;
-    } else if (data && (data.generated_text || data.text)) {
-      generated = data.generated_text || data.text;
-    } else if (typeof data === 'string') {
-      generated = data;
-    }
-
-    if (!generated) {
-      // Some models return a nested completion; fallback to JSON string
-      generated = JSON.stringify(data);
-    }
-
-    story.innerText = generated.trim();
+    story.innerText = data.story;
     status.innerText = "Ready to read!";
-
   } catch (err) {
     console.error(err);
     status.innerText = "Error: " + (err.message || err);
   } finally {
     button.disabled = false;
   }
-
 }
 
 </script>
